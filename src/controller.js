@@ -258,16 +258,19 @@ export default class SankeyController extends DatasetController {
     ctx.lineWidth = borderWidth;
 
     for (const node of nodes.values()) {
-      ctx.fillStyle = node.color;
       const x = xScale.getPixelForValue(node.x);
       const y = yScale.getPixelForValue(node.y);
 
       const max = Math[size](node.in || node.out, node.out || node.in);
       const height = Math.abs(yScale.getPixelForValue(node.y + max) - y);
+      ctx.beginPath();
+      ctx.fillStyle = node.color;
       if (borderWidth) {
-        ctx.strokeRect(x, y, nodeWidth, height);
+        ctx.roundRect(x, y, nodeWidth, height, 20);
       }
-      ctx.fillRect(x, y, nodeWidth, height);
+      ctx.roundRect(x, y, nodeWidth, height, 20);
+      ctx.fill();
+      ctx.stroke();
     }
     ctx.restore();
   }
