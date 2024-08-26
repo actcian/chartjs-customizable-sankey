@@ -80,10 +80,12 @@ export default class SankeyController extends DatasetController {
    * @param {number} count
    * @return {Array<SankeyParsedData>}
    */
+
   parseObjectData(meta, data, start, count) {
     const {from: fromKey = 'from', to: toKey = 'to', flow: flowKey = 'flow'} = this.options.parsing;
     const sankeyData = data.map(({[fromKey]: from, [toKey]: to, [flowKey]: flow}) => ({from, to, flow}));
     const {xScale, yScale} = meta;
+
     const parsed = []; /* Array<SankeyParsedData> */
     const nodes = this._nodes = buildNodesFromRawData(sankeyData);
     /* getDataset() => SankeyControllerDatasetOptions */
@@ -124,6 +126,7 @@ export default class SankeyController extends DatasetController {
           x: xScale.parse(to.x, i),
           y: yScale.parse(toY, i),
           height: yScale.parse(dataPoint.flow, i),
+          nodeWidth: valueOrDefault(this.getDataset().nodeWidth, 10),
         }
       });
     }
@@ -139,6 +142,8 @@ export default class SankeyController extends DatasetController {
 
   update(mode) {
     const {data} = this._cachedMeta;
+
+    this.chart.config.options.padding = {}
 
     this.updateElements(data, 0, data.length, mode);
   }
@@ -298,13 +303,13 @@ export default class SankeyController extends DatasetController {
       flow.to.color = flow.options.colorTo;
     }
 
-    /* draw SankeyNodes on the canvas */
-    this._drawNodes();
-
     /* draw Flow elements on the canvas */
     for (let i = 0, ilen = data.length; i < ilen; ++i) {
       data[i].draw(ctx);
     }
+
+    /* draw SankeyNodes on the canvas */
+    this._drawNodes();
 
     /* draw labels (for SankeyNodes) on the canvas */
     this._drawLabels();
@@ -318,7 +323,7 @@ SankeyController.defaults = {
   animations: {
     numbers: {
       type: 'number',
-      properties: ['x', 'y', 'x2', 'y2', 'height']
+      properties: ['x', 'y', 'x2', 'y2', 'height' ],
     },
     progress: {
       easing: 'linear',
@@ -398,7 +403,6 @@ SankeyController.overrides = {
     padding: {
       top: 3,
       left: 3,
-      right: 13,
       bottom: 3,
     },
   },

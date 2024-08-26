@@ -38,13 +38,13 @@ function setStyle(ctx, {x, x2, options}) {
   let fill;
 
   if (options.colorMode === 'from') {
-    fill = color(options.colorFrom).alpha(0.5).rgbString();
+    fill = color(options.colorFrom).alpha(0.2).rgbString();
   } else if (options.colorMode === 'to') {
-    fill = color(options.colorTo).alpha(0.5).rgbString();
+    fill = color(options.colorTo).alpha(0.2).rgbString();
   } else {
     fill = ctx.createLinearGradient(x, 0, x2, 0);
-    fill.addColorStop(0, color(options.colorFrom).alpha(0.5).rgbString());
-    fill.addColorStop(1, color(options.colorTo).alpha(0.5).rgbString());
+    fill.addColorStop(0, color(options.colorFrom).alpha(0.2).rgbString());
+    fill.addColorStop(1, color(options.colorTo).alpha(0.2).rgbString());
   }
 
   ctx.fillStyle = fill;
@@ -78,7 +78,12 @@ export default class Flow extends Element {
   draw(ctx) {
     const me = this;
     const {x, x2, y, y2, height, progress} = me;
-    const {cp1, cp2} = controlPoints(x, y, x2, y2);
+
+    const halfNodeWidth = me.$context.parsed._custom.nodeWidth / 2;
+    const startX = x - halfNodeWidth;
+    const endX = x2 + halfNodeWidth;
+
+    const {cp1, cp2} = controlPoints(startX, y, endX, y2);
 
     if (progress === 0) {
       return;
@@ -86,18 +91,18 @@ export default class Flow extends Element {
     ctx.save();
     if (progress < 1) {
       ctx.beginPath();
-      ctx.rect(x, Math.min(y, y2), (x2 - x) * progress + 1, Math.abs(y2 - y) + height + 1);
+      ctx.rect(startX, Math.min(y, y2), (endX - startX) * progress + 1, Math.abs(y2 - y) + height + 1);
       ctx.clip();
     }
 
     setStyle(ctx, me);
 
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
-    ctx.lineTo(x2, y2 + height);
-    ctx.bezierCurveTo(cp2.x, cp2.y + height, cp1.x, cp1.y + height, x, y + height);
-    ctx.lineTo(x, y);
+    ctx.moveTo(startX, y);
+    ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, endX, y2);
+    ctx.lineTo(endX, y2 + height);
+    ctx.bezierCurveTo(cp2.x, cp2.y + height, cp1.x, cp1.y + height, startX, y + height);
+    ctx.lineTo(startX, y);
     ctx.stroke();
     ctx.closePath();
 
