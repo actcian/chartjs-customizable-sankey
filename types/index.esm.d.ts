@@ -32,6 +32,8 @@ declare module 'chart.js' {
     column?: Record<string, number>
     /* Map<node.key, label> */
     labels?: Record<string, string>
+    // Pattern to be applied on each node
+    patterns?: Record<string, CanvasPattern>;
 
     size?: 'min' | 'max'    /* defaults to max */
     borderWidth?: number    /* defaults to 1 */
