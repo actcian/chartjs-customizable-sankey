@@ -210,12 +210,32 @@ export default class SankeyController extends DatasetController {
   }
 
   /**
-   * @param {string} key
-   * @returns {CanvasPattern}
+   * @returns {Record<string, CanvasPattern>}
    */
 
-  _getPatternByKey(key) {
-    return this.getDataset().patterns[key];
+  mapNodeSettingBySettingKey(optionKey) {
+    const nodeSettings = this.getDataset().nodeSettings;
+    console.log({nodeSettings})
+    if (nodeSettings) {
+      const mappings = Object.entries(nodeSettings).reduce(
+        (acc, [key, value]) => {
+          acc[key] = value[optionKey] || null;
+          return acc;
+        },
+        {}
+      );
+      return mappings;
+    }
+
+    return {};
+  }
+
+  get nodePatterns() {
+    return this.mapNodeSettingBySettingKey('pattern');
+  }
+
+  get nodeLabels() {
+    return this.mapNodeSettingBySettingKey('label');
   }
 
   _drawLabels() {
@@ -225,7 +245,7 @@ export default class SankeyController extends DatasetController {
     const size = validateSizeValue(dataset.size);
     const borderWidth = valueOrDefault(dataset.borderWidth, 1);
     const nodeWidth = valueOrDefault(dataset.nodeWidth, 10);
-    const labels = dataset.labels;
+    const labels = this.nodeLabels;
     const { xScale, yScale } = this._cachedMeta;
 
     ctx.save();
@@ -301,7 +321,7 @@ export default class SankeyController extends DatasetController {
       const max = Math[size](node.in || node.out, node.out || node.in);
       const height = Math.abs(yScale.getPixelForValue(node.y + max) - y);
 
-      const pattern = this._getPatternByKey(node.key);
+      const pattern = this.nodePatterns[node.key];
 
       ctx.beginPath();
 

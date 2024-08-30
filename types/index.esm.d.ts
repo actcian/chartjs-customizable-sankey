@@ -6,13 +6,12 @@ import {
   Element,
   FontSpec,
   ScriptableContext,
-  VisualElement
+  VisualElement,
 } from 'chart.js';
 
 type AnyObject = Record<string, unknown>;
 
 declare module 'chart.js' {
-
   /* raw data element */
   interface SankeyDataPoint {
     from: string;
@@ -28,56 +27,64 @@ declare module 'chart.js' {
     colorTo: (data: ScriptableContext<'sankey'>) => string;
     colorMode: 'gradient' | 'from' | 'to';
     /* Map<node.key, priority_value> */
-    priority?: Record<string, number>
-    column?: Record<string, number>
+    priority?: Record<string, number>;
+    column?: Record<string, number>;
     /* Map<node.key, label> */
-    labels?: Record<string, string>
+    // labels?: Record<string, string>
     // Pattern to be applied on each node
-    patterns?: Record<string, CanvasPattern>;
+    // patterns?: Record<string, CanvasPattern>;
 
-    size?: 'min' | 'max'    /* defaults to max */
-    borderWidth?: number    /* defaults to 1 */
-    nodeWidth?: number      /* defaults to 10 */
-    color?: string          /* defaults to 'black' */
-    borderColor?: string    /* defaults to 'black' */
-    font?: FontSpec         /* defaults to chart.options.font */
-    padding?: number        /* defaults to font.lineHeight / 2 */
+    /* Sankey node settings */
+    nodeSettings?: Record<string, NodeSetting>;
+
+    size?: 'min' | 'max' /* defaults to max */;
+    borderWidth?: number /* defaults to 1 */;
+    nodeWidth?: number /* defaults to 10 */;
+    color?: string /* defaults to 'black' */;
+    borderColor?: string /* defaults to 'black' */;
+    font?: FontSpec /* defaults to chart.options.font */;
+    padding?: number /* defaults to font.lineHeight / 2 */;
   }
+
+  type NodeSetting = {
+    label?: string;
+    pattern?: CanvasPattern;
+  };
 
   type FromToElement = {
-    addY: number
-    flow: number
-    key: string
-    node: SankeyNode
-  }
+    addY: number;
+    flow: number;
+    key: string;
+    node: SankeyNode;
+  };
 
   type SankeyNode = {
     /* unique key of a node */
-    key: string
+    key: string;
     /* number of => in-connections */
-    in: number
+    in: number;
     /* number of out => connections */
-    out: number
-    from: Array<FromToElement>
-    to: Array<FromToElement>
+    out: number;
+    from: Array<FromToElement>;
+    to: Array<FromToElement>;
     /* true if x is defined by SankeyControllerDatasetOptions.column map  */
-    column?: boolean
+    column?: boolean;
     /* priority extracted from the SankeyControllerDatasetOptions.priority map */
-    priority?: number
-    y?: number
-    x?: number
-  }
+    priority?: number;
+    y?: number;
+    x?: number;
+  };
 
   interface SankeyParsedData {
-    x: number
-    y: number
+    x: number;
+    y: number;
     _custom: {
-      from: SankeyNode,
-      to: SankeyNode
-      x: number
-      y: number
-      height: number,
-    }
+      from: SankeyNode;
+      to: SankeyNode;
+      x: number;
+      y: number;
+      height: number;
+    };
   }
 
   interface ChartTypeRegistry {
@@ -85,7 +92,7 @@ declare module 'chart.js' {
       datasetOptions: SankeyControllerDatasetOptions;
       defaultDataPoint: SankeyDataPoint;
       parsedDataType: SankeyParsedData;
-      metaExtensions: AnyObject
+      metaExtensions: AnyObject;
       /* TODO: define sankey chart options */
       chartOptions: AnyObject;
       scales: keyof CartesianScaleTypeRegistry;
@@ -95,8 +102,8 @@ declare module 'chart.js' {
 
 export interface FlowOptions {
   colorMode: 'gradient' | 'from' | 'to';
-  colorFrom: string
-  colorTo: string
+  colorFrom: string;
+  colorTo: string;
 }
 
 export interface FlowConfig {
@@ -105,21 +112,22 @@ export interface FlowConfig {
   x2: number;
   y2: number;
   height: number;
-  options: FlowOptions
+  options: FlowOptions;
 }
 
-export type SankeyController = DatasetController
+export type SankeyController = DatasetController;
 export const SankeyController: ChartComponent & {
   prototype: SankeyController;
-  new(chart: Chart, datasetIndex: number): SankeyController;
+  new (chart: Chart, datasetIndex: number): SankeyController;
 };
 
 export interface Flow<
   T extends FlowConfig = FlowConfig,
   O extends FlowOptions = FlowOptions
-> extends Element<T, O>, VisualElement {}
+> extends Element<T, O>,
+    VisualElement {}
 
 export const Flow: ChartComponent & {
   prototype: Flow;
-  new(cfg: FlowConfig): Flow;
+  new (cfg: FlowConfig): Flow;
 };
