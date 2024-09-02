@@ -1,7 +1,7 @@
-import {DatasetController} from 'chart.js';
-import {valueOrDefault, toFont, isNullOrUndef} from 'chart.js/helpers';
-import {toTextLines, validateSizeValue} from './helpers';
-import {layout} from './layout';
+import { DatasetController } from 'chart.js';
+import { valueOrDefault, toFont, isNullOrUndef } from 'chart.js/helpers';
+import { toTextLines, validateSizeValue } from './helpers';
+import { layout } from './layout';
 
 /**
  * @param {Array<SankeyDataPoint>} data Array of raw data elements
@@ -9,8 +9,9 @@ import {layout} from './layout';
  */
 export function buildNodesFromRawData(data) {
   const nodes = new Map();
+
   for (let i = 0; i < data.length; i++) {
-    const {from, to, flow} = data[i];
+    const { from, to, flow } = data[i];
 
     if (!nodes.has(from)) {
       nodes.set(from, {
@@ -18,38 +19,39 @@ export function buildNodesFromRawData(data) {
         in: 0,
         out: flow,
         from: [],
-        to: [{key: to, flow: flow, index: i}],
+        to: [{ key: to, flow: flow, index: i }],
       });
     } else {
       const node = nodes.get(from);
       node.out += flow;
-      node.to.push({key: to, flow: flow, index: i});
+      node.to.push({ key: to, flow: flow, index: i });
     }
+
     if (!nodes.has(to)) {
       nodes.set(to, {
         key: to,
         in: flow,
         out: 0,
-        from: [{key: from, flow: flow, index: i}],
+        from: [{ key: from, flow: flow, index: i }],
         to: [],
       });
     } else {
       const node = nodes.get(to);
       node.in += flow;
-      node.from.push({key: from, flow: flow, index: i});
+      node.from.push({ key: from, flow: flow, index: i });
     }
   }
 
   const flowSort = (a, b) => b.flow - a.flow;
 
-  [...nodes.values()].forEach(node => {
+  [...nodes.values()].forEach((node) => {
     node.from = node.from.sort(flowSort);
-    node.from.forEach(x => {
+    node.from.forEach((x) => {
       x.node = nodes.get(x.key);
     });
 
     node.to = node.to.sort(flowSort);
-    node.to.forEach(x => {
+    node.to.forEach((x) => {
       x.node = nodes.get(x.key);
     });
   });
@@ -80,14 +82,28 @@ export default class SankeyController extends DatasetController {
    * @param {number} count
    * @return {Array<SankeyParsedData>}
    */
+
   parseObjectData(meta, data, start, count) {
-    const {from: fromKey = 'from', to: toKey = 'to', flow: flowKey = 'flow'} = this.options.parsing;
-    const sankeyData = data.map(({[fromKey]: from, [toKey]: to, [flowKey]: flow}) => ({from, to, flow}));
-    const {xScale, yScale} = meta;
+    const {
+      from: fromKey = 'from',
+      to: toKey = 'to',
+      flow: flowKey = 'flow',
+    } = this.options.parsing;
+
+    const sankeyData = data.map(
+      ({ [fromKey]: from, [toKey]: to, [flowKey]: flow }) => ({
+        from,
+        to,
+        flow,
+      })
+    );
+    const { xScale, yScale } = meta;
+
     const parsed = []; /* Array<SankeyParsedData> */
-    const nodes = this._nodes = buildNodesFromRawData(sankeyData);
+    const nodes = (this._nodes = buildNodesFromRawData(sankeyData));
+
     /* getDataset() => SankeyControllerDatasetOptions */
-    const {column, priority, size} = this.getDataset();
+    const { column, priority, size } = this.getDataset();
     if (priority) {
       for (const node of nodes.values()) {
         if (node.key in priority) {
@@ -104,7 +120,12 @@ export default class SankeyController extends DatasetController {
       }
     }
 
-    const {maxX, maxY} = layout(nodes, sankeyData, !!priority, validateSizeValue(size));
+    const { maxX, maxY } = layout(
+      nodes,
+      sankeyData,
+      !!priority,
+      validateSizeValue(size)
+    );
 
     this._maxX = maxX;
     this._maxY = maxY;
@@ -124,7 +145,8 @@ export default class SankeyController extends DatasetController {
           x: xScale.parse(to.x, i),
           y: yScale.parse(toY, i),
           height: yScale.parse(dataPoint.flow, i),
-        }
+          nodeWidth: valueOrDefault(this.getDataset().nodeWidth, 10),
+        },
       });
     }
     return parsed.slice(start, start + count);
@@ -133,12 +155,14 @@ export default class SankeyController extends DatasetController {
   getMinMax(scale) {
     return {
       min: 0,
-      max: scale === this._cachedMeta.xScale ? this._maxX : this._maxY
+      max: scale === this._cachedMeta.xScale ? this._maxX : this._maxY,
     };
   }
 
   update(mode) {
-    const {data} = this._cachedMeta;
+    const { data } = this._cachedMeta;
+
+    this.chart.config.options.padding = {};
 
     this.updateElements(data, 0, data.length, mode);
   }
@@ -150,7 +174,7 @@ export default class SankeyController extends DatasetController {
    * @param {"resize" | "reset" | "none" | "hide" | "show" | "normal" | "active"} mode
    */
   updateElements(elems, start, count, mode) {
-    const {xScale, yScale} = this._cachedMeta;
+    const { xScale, yScale } = this._cachedMeta;
     const firstOpts = this.resolveDataElementOptions(start, mode);
     const sharedOptions = this.getSharedOptions(mode, elems[start], firstOpts);
     const dataset = this.getDataset();
@@ -173,13 +197,45 @@ export default class SankeyController extends DatasetController {
           from: custom.from,
           to: custom.to,
           progress: mode === 'reset' ? 0 : 1,
-          height: Math.abs(yScale.getPixelForValue(parsed.y + custom.height) - y),
-          options: this.resolveDataElementOptions(i, mode)
+          height: Math.abs(
+            yScale.getPixelForValue(parsed.y + custom.height) - y
+          ),
+          options: this.resolveDataElementOptions(i, mode),
         },
-        mode);
+        mode
+      );
     }
 
     this.updateSharedOptions(sharedOptions, mode);
+  }
+
+  /**
+   * @returns {Record<string, CanvasPattern>}
+   */
+
+  mapNodeSettingBySettingKey(optionKey) {
+    const nodeSettings = this.getDataset().nodeSettings;
+    console.log({nodeSettings})
+    if (nodeSettings) {
+      const mappings = Object.entries(nodeSettings).reduce(
+        (acc, [key, value]) => {
+          acc[key] = value[optionKey] || null;
+          return acc;
+        },
+        {}
+      );
+      return mappings;
+    }
+
+    return {};
+  }
+
+  get nodePatterns() {
+    return this.mapNodeSettingBySettingKey('pattern');
+  }
+
+  get nodeLabels() {
+    return this.mapNodeSettingBySettingKey('label');
   }
 
   _drawLabels() {
@@ -189,8 +245,8 @@ export default class SankeyController extends DatasetController {
     const size = validateSizeValue(dataset.size);
     const borderWidth = valueOrDefault(dataset.borderWidth, 1);
     const nodeWidth = valueOrDefault(dataset.nodeWidth, 10);
-    const labels = dataset.labels;
-    const {xScale, yScale} = this._cachedMeta;
+    const labels = this.nodeLabels;
+    const { xScale, yScale } = this._cachedMeta;
 
     ctx.save();
     const chartArea = this.chart.chartArea;
@@ -200,7 +256,7 @@ export default class SankeyController extends DatasetController {
 
       const max = Math[size](node.in || node.out, node.out || node.in);
       const height = Math.abs(yScale.getPixelForValue(node.y + max) - y);
-      const label = labels && labels[node.key] || node.key;
+      const label = (labels && labels[node.key]) || node.key;
       let textX = x;
       ctx.fillStyle = dataset.color || 'black';
       ctx.textBaseline = 'middle';
@@ -235,9 +291,9 @@ export default class SankeyController extends DatasetController {
     ctx.font = font.string;
 
     if (linesLength > 1) {
-      const top = middle - (textHeight * linesLength / 2) + padding;
+      const top = middle - (textHeight * linesLength) / 2 + padding;
       for (let i = 0; i < linesLength; i++) {
-        ctx.fillText(lines[i], textX, top + (i * textHeight));
+        ctx.fillText(lines[i], textX, top + i * textHeight);
       }
     } else {
       ctx.fillText(label, textX, middle);
@@ -247,9 +303,10 @@ export default class SankeyController extends DatasetController {
   _drawNodes() {
     const ctx = this._ctx;
     const nodes = this._nodes || new Map();
-    const dataset = this.getDataset();  /* SankeyControllerDatasetOptions */
+
+    const dataset = this.getDataset(); /* SankeyControllerDatasetOptions */
     const size = validateSizeValue(dataset.size);
-    const {xScale, yScale} = this._cachedMeta;
+    const { xScale, yScale } = this._cachedMeta;
     const borderWidth = valueOrDefault(dataset.borderWidth, 1);
     const nodeWidth = valueOrDefault(dataset.nodeWidth, 10);
 
@@ -263,8 +320,12 @@ export default class SankeyController extends DatasetController {
 
       const max = Math[size](node.in || node.out, node.out || node.in);
       const height = Math.abs(yScale.getPixelForValue(node.y + max) - y);
+
+      const pattern = this.nodePatterns[node.key];
+
       ctx.beginPath();
-      ctx.fillStyle = node.color;
+
+      ctx.fillStyle = pattern || node.color;
       if (borderWidth) {
         ctx.roundRect(x, y, nodeWidth, height, 20);
       }
@@ -286,6 +347,7 @@ export default class SankeyController extends DatasetController {
     const active = [];
     for (let i = 0, ilen = data.length; i < ilen; ++i) {
       const flow = data[i]; /* Flow at index i */
+
       flow.from.color = flow.options.colorFrom;
       flow.to.color = flow.options.colorTo;
       if (flow.active) {
@@ -295,16 +357,16 @@ export default class SankeyController extends DatasetController {
     // Make sure nodes connected to hovered flows are using hover colors.
     for (const flow of active) {
       flow.from.color = flow.options.colorFrom;
-      flow.to.color = flow.options.colorTo;
+      flow.from.color = flow.options.colorTo;
     }
-
-    /* draw SankeyNodes on the canvas */
-    this._drawNodes();
 
     /* draw Flow elements on the canvas */
     for (let i = 0, ilen = data.length; i < ilen; ++i) {
       data[i].draw(ctx);
     }
+
+    /* draw SankeyNodes on the canvas */
+    this._drawNodes();
 
     /* draw labels (for SankeyNodes) on the canvas */
     this._drawLabels();
@@ -318,12 +380,18 @@ SankeyController.defaults = {
   animations: {
     numbers: {
       type: 'number',
-      properties: ['x', 'y', 'x2', 'y2', 'height']
+      properties: ['x', 'y', 'x2', 'y2', 'height'],
     },
     progress: {
       easing: 'linear',
-      duration: (ctx) => ctx.type === 'data' ? (ctx.parsed._custom.x - ctx.parsed.x) * 200 : undefined,
-      delay: (ctx) => ctx.type === 'data' ? ctx.parsed.x * 500 + ctx.dataIndex * 20 : undefined,
+      duration: (ctx) =>
+        ctx.type === 'data'
+          ? (ctx.parsed._custom.x - ctx.parsed.x) * 200
+          : undefined,
+      delay: (ctx) =>
+        ctx.type === 'data'
+          ? ctx.parsed.x * 500 + ctx.dataIndex * 20
+          : undefined,
     },
     colors: {
       type: 'color',
@@ -336,30 +404,30 @@ SankeyController.defaults = {
         colors: {
           type: 'color',
           properties: ['colorFrom', 'colorTo'],
-          to: 'transparent'
-        }
-      }
+          to: 'transparent',
+        },
+      },
     },
     show: {
       animations: {
         colors: {
           type: 'color',
           properties: ['colorFrom', 'colorTo'],
-          from: 'transparent'
-        }
-      }
-    }
-  }
+          from: 'transparent',
+        },
+      },
+    },
+  },
 };
 
 SankeyController.overrides = {
   interaction: {
     mode: 'nearest',
-    intersect: true
+    intersect: true,
   },
   datasets: {
     clip: false,
-    parsing: true
+    parsing: true,
   },
   plugins: {
     tooltip: {
@@ -370,7 +438,7 @@ SankeyController.overrides = {
         label(context) {
           const item = context.dataset.data[context.dataIndex];
           return item.from + ' -> ' + item.to + ': ' + item.flow;
-        }
+        },
       },
     },
     legend: {
@@ -398,7 +466,6 @@ SankeyController.overrides = {
     padding: {
       top: 3,
       left: 3,
-      right: 13,
       bottom: 3,
     },
   },
