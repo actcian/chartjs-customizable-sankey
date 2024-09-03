@@ -542,13 +542,22 @@ class SankeyController extends DatasetController {
       const fromLabel = this.nodeLabels[fromKey];
       const fromLabelPosition = this.labelPositions[fromKey];
 
-      // const toKey = parsed._custom.to.key;
-      // const isRightEnd = parsed._custom.to.to.length === 0;
+      const toKey = parsed._custom.to.key;
+      const isRightEnd = parsed._custom.to.to.length === 0;
+      const toLabel = this.nodeLabels[toKey];
+      const toLabelPosition = this.labelPositions[toKey];
 
       let movedX = 0;
+      let movedX2 = 0;
 
       if (fromLabel && fromLabelPosition === 'left' && isLeftEnd) {
-        movedX = this._ctx.measureText(fromLabel).width + nodeWidth / 2 + borderWidth;
+        movedX =
+          this._ctx.measureText(fromLabel).width + nodeWidth / 2 + borderWidth;
+      }
+
+      if (toLabel && toLabelPosition === 'right' && isRightEnd) {
+        movedX2 =
+          -this._ctx.measureText(toLabel).width - nodeWidth / 2 - borderWidth;
       }
 
       this.updateElement(
@@ -561,7 +570,7 @@ class SankeyController extends DatasetController {
             borderWidth +
             movedX,
           y,
-          x2: xScale.getPixelForValue(custom.x) - borderWidth,
+          x2: xScale.getPixelForValue(custom.x) - borderWidth + movedX2,
           y2: yScale.getPixelForValue(custom.y),
           from: custom.from,
           to: custom.to,
@@ -657,8 +666,13 @@ class SankeyController extends DatasetController {
           break;
         case 'right':
           {
-            ctx.textAlign = 'left';
-            textX += nodeWidth + borderWidth + 4;
+            if (node.to.length === 0) {
+              ctx.textAlign = 'right';
+              textX += nodeWidth + borderWidth;
+            } else {
+              ctx.textAlign = 'left';
+              textX += nodeWidth + borderWidth + 4;
+            }
           }
           break;
         case 'top':
@@ -746,7 +760,7 @@ class SankeyController extends DatasetController {
       }
 
       if (nodeLabel && nodeLabelPosition === 'right' && node.to.length === 0) {
-        nodeX -= nodeLabelWidth + nodeWidth + borderWidth;
+        nodeX -= nodeLabelWidth + nodeWidth / 8 + borderWidth;
       }
 
       ctx.beginPath();

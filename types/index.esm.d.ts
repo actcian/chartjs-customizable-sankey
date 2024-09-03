@@ -5,7 +5,7 @@ import {
   DatasetController,
   Element,
   FontSpec,
-  ScriptableContext,
+  // ScriptableContext,
   VisualElement,
 } from 'chart.js';
 
