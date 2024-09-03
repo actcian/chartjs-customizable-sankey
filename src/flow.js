@@ -38,17 +38,18 @@ const pointInLine = (p1, p2, t) => ({
  * @param {CanvasRenderingContext2D} ctx
  * @param {Flow} flow
  */
-function setStyle(ctx, { x, x2, options }) {
+function setStyle(ctx, me) {
+  const { x, x2, options, from, to } = me
   let fill;
 
   if (options.colorMode === 'from') {
-    fill = color(options.colorFrom).alpha(0.2).rgbString();
+    fill = color(from.color).alpha(0.2).rgbString();
   } else if (options.colorMode === 'to') {
-    fill = color(options.colorTo).alpha(0.2).rgbString();
+    fill = color(to.color).alpha(0.2).rgbString();
   } else {
     fill = ctx.createLinearGradient(x, 0, x2, 0);
-    fill.addColorStop(0, color(options.colorFrom).alpha(0.2).rgbString());
-    fill.addColorStop(1, color(options.colorTo).alpha(0.2).rgbString());
+    fill.addColorStop(0, color(from.color).alpha(0.2).rgbString());
+    fill.addColorStop(1, color(to.color).alpha(0.2).rgbString());
   }
 
   ctx.fillStyle = fill;
@@ -62,7 +63,6 @@ export default class Flow extends Element {
    */
   constructor(cfg) {
     super();
-
     this.options = undefined;
     this.x = undefined;
     this.y = undefined;
@@ -71,16 +71,15 @@ export default class Flow extends Element {
     this.height = undefined;
 
     if (cfg) {
-      console.log({cfg});
       Object.assign(this, cfg);
     }
   }
-
   /**
    * @param {CanvasRenderingContext2D} ctx
    */
   draw(ctx) {
     const me = this;
+
     const { x, x2, y, y2, height, progress } = me;
 
     const halfNodeWidth = me.$context.parsed._custom.nodeWidth / 2;
@@ -212,6 +211,6 @@ Flow.defaults = {
   colorFrom: 'red',
   colorTo: 'green',
   colorMode: 'gradient',
-  hoverColorFrom: (ctx, options) => getHoverColor(options.colorFrom),
-  hoverColorTo: (ctx, options) => getHoverColor(options.colorTo),
+  // hoverColorFrom: (ctx, options) => getHoverColor(options.colorFrom),
+  // hoverColorTo: (ctx, options) => getHoverColor(options.colorTo),
 };
