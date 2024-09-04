@@ -49,6 +49,9 @@ declare module 'chart.js' {
     labelPosition?: 'left' | 'right' | 'top';
     color?: string;
     pattern?: CanvasPattern;
+    verticalPadding?: number;
+    maxHeight?: number;
+    minHeight?: number;
   };
 
   type FromToElement = {
