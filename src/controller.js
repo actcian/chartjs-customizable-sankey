@@ -403,7 +403,10 @@ export default class SankeyController extends DatasetController {
       const y = yScale.getPixelForValue(node.y);
 
       const max = Math[size](node.in || node.out, node.out || node.in);
+
       const height = Math.abs(yScale.getPixelForValue(node.y + max) - y);
+
+      console.log({ max, height, y });
 
       const pattern = this.nodePatterns[node.key];
       const nodeLabel = this.nodeLabels[node.key];
@@ -424,6 +427,7 @@ export default class SankeyController extends DatasetController {
       ctx.beginPath();
 
       ctx.fillStyle = pattern || node.color;
+
       if (borderWidth) {
         ctx.roundRect(nodeX, y, nodeWidth, height, 20);
       }
@@ -437,6 +441,7 @@ export default class SankeyController extends DatasetController {
   /**
    * That's where the drawing process happens
    */
+  
   draw() {
     const ctx = this._ctx;
     const data = this.getMeta().data || []; /* Array<Flow> */

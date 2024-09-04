@@ -348,7 +348,7 @@ function layout(nodes, data, priority, size) {
   const nodeArray = [...nodes.values()];
   const maxX = calculateX(nodes, data);
   const maxY = priority ? calculateYUsingPriority(nodeArray, maxX) : calculateY(nodeArray, maxX);
-  const padding = maxY * 0.03; // rows;
+  const padding = maxY * 0.5; // rows;
   const maxYWithPadding = addPadding(nodeArray, padding);
   sortFlows(nodeArray, size);
   return {maxX, maxY: maxYWithPadding};
@@ -748,7 +748,10 @@ class SankeyController extends chart_js.DatasetController {
       const y = yScale.getPixelForValue(node.y);
 
       const max = Math[size](node.in || node.out, node.out || node.in);
+
       const height = Math.abs(yScale.getPixelForValue(node.y + max) - y);
+
+      console.log({ max, height, y });
 
       const pattern = this.nodePatterns[node.key];
       const nodeLabel = this.nodeLabels[node.key];
@@ -769,6 +772,7 @@ class SankeyController extends chart_js.DatasetController {
       ctx.beginPath();
 
       ctx.fillStyle = pattern || node.color;
+
       if (borderWidth) {
         ctx.roundRect(nodeX, y, nodeWidth, height, 20);
       }
@@ -782,6 +786,7 @@ class SankeyController extends chart_js.DatasetController {
   /**
    * That's where the drawing process happens
    */
+  
   draw() {
     const ctx = this._ctx;
     const data = this.getMeta().data || []; /* Array<Flow> */

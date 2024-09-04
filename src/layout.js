@@ -316,7 +316,7 @@ export function layout(nodes, data, priority, size) {
   const nodeArray = [...nodes.values()];
   const maxX = calculateX(nodes, data);
   const maxY = priority ? calculateYUsingPriority(nodeArray, maxX) : calculateY(nodeArray, maxX);
-  const padding = maxY * 0.03; // rows;
+  const padding = maxY * 0.5; // rows;
   const maxYWithPadding = addPadding(nodeArray, padding);
   sortFlows(nodeArray, size);
   return {maxX, maxY: maxYWithPadding};
