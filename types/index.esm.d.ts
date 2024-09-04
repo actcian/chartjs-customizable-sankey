@@ -5,7 +5,7 @@ import {
   DatasetController,
   Element,
   FontSpec,
-  ScriptableContext,
+  // ScriptableContext,
   VisualElement,
 } from 'chart.js';
 
@@ -23,8 +23,6 @@ declare module 'chart.js' {
   interface SankeyControllerDatasetOptions {
     label: string;
     data: Array<SankeyDataPoint>;
-    colorFrom: (data: ScriptableContext<'sankey'>) => string;
-    colorTo: (data: ScriptableContext<'sankey'>) => string;
     colorMode: 'gradient' | 'from' | 'to';
     /* Map<node.key, priority_value> */
     priority?: Record<string, number>;
@@ -48,6 +46,8 @@ declare module 'chart.js' {
 
   type NodeSetting = {
     label?: string;
+    labelPosition?: 'left' | 'right' | 'top';
+    color?: string;
     pattern?: CanvasPattern;
   };
 

@@ -360,8 +360,9 @@ function layout(nodes, data, priority, size) {
  */
 function buildNodesFromRawData(data) {
   const nodes = new Map();
+
   for (let i = 0; i < data.length; i++) {
-    const {from, to, flow} = data[i];
+    const { from, to, flow } = data[i];
 
     if (!nodes.has(from)) {
       nodes.set(from, {
@@ -369,38 +370,39 @@ function buildNodesFromRawData(data) {
         in: 0,
         out: flow,
         from: [],
-        to: [{key: to, flow: flow, index: i}],
+        to: [{ key: to, flow: flow, index: i }],
       });
     } else {
       const node = nodes.get(from);
       node.out += flow;
-      node.to.push({key: to, flow: flow, index: i});
+      node.to.push({ key: to, flow: flow, index: i });
     }
+
     if (!nodes.has(to)) {
       nodes.set(to, {
         key: to,
         in: flow,
         out: 0,
-        from: [{key: from, flow: flow, index: i}],
+        from: [{ key: from, flow: flow, index: i }],
         to: [],
       });
     } else {
       const node = nodes.get(to);
       node.in += flow;
-      node.from.push({key: from, flow: flow, index: i});
+      node.from.push({ key: from, flow: flow, index: i });
     }
   }
 
   const flowSort = (a, b) => b.flow - a.flow;
 
-  [...nodes.values()].forEach(node => {
+  [...nodes.values()].forEach((node) => {
     node.from = node.from.sort(flowSort);
-    node.from.forEach(x => {
+    node.from.forEach((x) => {
       x.node = nodes.get(x.key);
     });
 
     node.to = node.to.sort(flowSort);
-    node.to.forEach(x => {
+    node.to.forEach((x) => {
       x.node = nodes.get(x.key);
     });
   });
@@ -431,14 +433,28 @@ class SankeyController extends chart_js.DatasetController {
    * @param {number} count
    * @return {Array<SankeyParsedData>}
    */
+
   parseObjectData(meta, data, start, count) {
-    const {from: fromKey = 'from', to: toKey = 'to', flow: flowKey = 'flow'} = this.options.parsing;
-    const sankeyData = data.map(({[fromKey]: from, [toKey]: to, [flowKey]: flow}) => ({from, to, flow}));
-    const {xScale, yScale} = meta;
+    const {
+      from: fromKey = 'from',
+      to: toKey = 'to',
+      flow: flowKey = 'flow',
+    } = this.options.parsing;
+
+    const sankeyData = data.map(
+      ({ [fromKey]: from, [toKey]: to, [flowKey]: flow }) => ({
+        from,
+        to,
+        flow,
+      })
+    );
+    const { xScale, yScale } = meta;
+
     const parsed = []; /* Array<SankeyParsedData> */
-    const nodes = this._nodes = buildNodesFromRawData(sankeyData);
+    const nodes = (this._nodes = buildNodesFromRawData(sankeyData));
+
     /* getDataset() => SankeyControllerDatasetOptions */
-    const {column, priority, size} = this.getDataset();
+    const { column, priority, size } = this.getDataset();
     if (priority) {
       for (const node of nodes.values()) {
         if (node.key in priority) {
@@ -455,7 +471,12 @@ class SankeyController extends chart_js.DatasetController {
       }
     }
 
-    const {maxX, maxY} = layout(nodes, sankeyData, !!priority, validateSizeValue(size));
+    const { maxX, maxY } = layout(
+      nodes,
+      sankeyData,
+      !!priority,
+      validateSizeValue(size)
+    );
 
     this._maxX = maxX;
     this._maxY = maxY;
@@ -475,7 +496,8 @@ class SankeyController extends chart_js.DatasetController {
           x: xScale.parse(to.x, i),
           y: yScale.parse(toY, i),
           height: yScale.parse(dataPoint.flow, i),
-        }
+          nodeWidth: helpers.valueOrDefault(this.getDataset().nodeWidth, 10),
+        },
       });
     }
     return parsed.slice(start, start + count);
@@ -484,12 +506,14 @@ class SankeyController extends chart_js.DatasetController {
   getMinMax(scale) {
     return {
       min: 0,
-      max: scale === this._cachedMeta.xScale ? this._maxX : this._maxY
+      max: scale === this._cachedMeta.xScale ? this._maxX : this._maxY,
     };
   }
 
   update(mode) {
-    const {data} = this._cachedMeta;
+    const { data } = this._cachedMeta;
+
+    this.chart.config.options.padding = {};
 
     this.updateElements(data, 0, data.length, mode);
   }
@@ -501,7 +525,7 @@ class SankeyController extends chart_js.DatasetController {
    * @param {"resize" | "reset" | "none" | "hide" | "show" | "normal" | "active"} mode
    */
   updateElements(elems, start, count, mode) {
-    const {xScale, yScale} = this._cachedMeta;
+    const { xScale, yScale } = this._cachedMeta;
     const firstOpts = this.resolveDataElementOptions(start, mode);
     const sharedOptions = this.getSharedOptions(mode, elems[start], firstOpts);
     const dataset = this.getDataset();
@@ -513,24 +537,93 @@ class SankeyController extends chart_js.DatasetController {
       const parsed = this.getParsed(i);
       const custom = parsed._custom;
       const y = yScale.getPixelForValue(parsed.y);
+
+      console.log({ parsed });
+
+      const fromKey = parsed._custom.from.key;
+      const isLeftEnd = parsed._custom.from.from.length === 0;
+      const fromLabel = this.nodeLabels[fromKey];
+      const fromLabelPosition = this.labelPositions[fromKey];
+
+      const toKey = parsed._custom.to.key;
+      const isRightEnd = parsed._custom.to.to.length === 0;
+      const toLabel = this.nodeLabels[toKey];
+      const toLabelPosition = this.labelPositions[toKey];
+
+      let movedX = 0;
+      let movedX2 = 0;
+
+      if (fromLabel && fromLabelPosition === 'left' && isLeftEnd) {
+        movedX =
+          this._ctx.measureText(fromLabel).width + nodeWidth / 2 + borderWidth;
+      }
+
+      if (toLabel && toLabelPosition === 'right' && isRightEnd) {
+        movedX2 =
+          -this._ctx.measureText(toLabel).width - nodeWidth / 2 - borderWidth;
+      }
+
       this.updateElement(
         elems[i],
         i,
         {
-          x: xScale.getPixelForValue(parsed.x) + nodeWidth + borderWidth,
+          x:
+            xScale.getPixelForValue(parsed.x) +
+            nodeWidth +
+            borderWidth +
+            movedX,
           y,
-          x2: xScale.getPixelForValue(custom.x) - borderWidth,
+          x2: xScale.getPixelForValue(custom.x) - borderWidth + movedX2,
           y2: yScale.getPixelForValue(custom.y),
           from: custom.from,
           to: custom.to,
           progress: mode === 'reset' ? 0 : 1,
-          height: Math.abs(yScale.getPixelForValue(parsed.y + custom.height) - y),
-          options: this.resolveDataElementOptions(i, mode)
+          height: Math.abs(
+            yScale.getPixelForValue(parsed.y + custom.height) - y
+          ),
+          options: this.resolveDataElementOptions(i, mode),
         },
-        mode);
+        mode
+      );
     }
 
     this.updateSharedOptions(sharedOptions, mode);
+  }
+
+  /**
+   * @returns {Record<string, CanvasPattern>}
+   */
+
+  mapNodeSettingBySettingKey(optionKey) {
+    const nodeSettings = this.getDataset().nodeSettings;
+    if (nodeSettings) {
+      const mappings = Object.entries(nodeSettings).reduce(
+        (acc, [key, value]) => {
+          acc[key] = value[optionKey] || null;
+          return acc;
+        },
+        {}
+      );
+      return mappings;
+    }
+
+    return {};
+  }
+
+  get nodePatterns() {
+    return this.mapNodeSettingBySettingKey('pattern');
+  }
+
+  get nodeLabels() {
+    return this.mapNodeSettingBySettingKey('label');
+  }
+
+  get nodeColors() {
+    return this.mapNodeSettingBySettingKey('color');
+  }
+
+  get labelPositions() {
+    return this.mapNodeSettingBySettingKey('labelPosition');
   }
 
   _drawLabels() {
@@ -540,8 +633,8 @@ class SankeyController extends chart_js.DatasetController {
     const size = validateSizeValue(dataset.size);
     const borderWidth = helpers.valueOrDefault(dataset.borderWidth, 1);
     const nodeWidth = helpers.valueOrDefault(dataset.nodeWidth, 10);
-    const labels = dataset.labels;
-    const {xScale, yScale} = this._cachedMeta;
+    const labels = this.nodeLabels;
+    const { xScale, yScale } = this._cachedMeta;
 
     ctx.save();
     const chartArea = this.chart.chartArea;
@@ -551,18 +644,59 @@ class SankeyController extends chart_js.DatasetController {
 
       const max = Math[size](node.in || node.out, node.out || node.in);
       const height = Math.abs(yScale.getPixelForValue(node.y + max) - y);
-      const label = labels && labels[node.key] || node.key;
+      const label = (labels && labels[node.key]) || node.key;
       let textX = x;
-      ctx.fillStyle = dataset.color || 'black';
+      let textY = y;
+
+      ctx.fillStyle =
+        helpers.color(this.nodeColors[node.key]).darken(0.4).hexString() ||
+        dataset.color ||
+        'black';
       ctx.textBaseline = 'middle';
-      if (x < chartArea.width / 2) {
-        ctx.textAlign = 'left';
-        textX += nodeWidth + borderWidth + 4;
-      } else {
-        ctx.textAlign = 'right';
-        textX -= borderWidth + 4;
+
+      const labelPosition = this.labelPositions[node.key];
+
+      switch (labelPosition) {
+        case 'left':
+          {
+            if (node.from.length === 0) {
+              ctx.textAlign = 'left';
+            } else {
+              ctx.textAlign = 'right';
+              textX -= borderWidth + 4;
+            }
+          }
+          break;
+        case 'right':
+          {
+            if (node.to.length === 0) {
+              ctx.textAlign = 'right';
+              textX += nodeWidth + borderWidth;
+            } else {
+              ctx.textAlign = 'left';
+              textX += nodeWidth + borderWidth + 4;
+            }
+          }
+          break;
+        case 'top':
+          {
+            ctx.textAlign = 'center';
+            textX += nodeWidth / 2;
+            textY -= height / 2 + borderWidth + 8;
+          }
+          break;
+        default: {
+          if (x < chartArea.width / 2) {
+            ctx.textAlign = 'left';
+            textX += nodeWidth + borderWidth + 4;
+          } else {
+            ctx.textAlign = 'right';
+            textX -= borderWidth + 4;
+          }
+        }
       }
-      this._drawLabel(label, y, height, ctx, textX);
+
+      this._drawLabel(label, textY, height, ctx, textX);
     }
     ctx.restore();
   }
@@ -586,9 +720,9 @@ class SankeyController extends chart_js.DatasetController {
     ctx.font = font.string;
 
     if (linesLength > 1) {
-      const top = middle - (textHeight * linesLength / 2) + padding;
+      const top = middle - (textHeight * linesLength) / 2 + padding;
       for (let i = 0; i < linesLength; i++) {
-        ctx.fillText(lines[i], textX, top + (i * textHeight));
+        ctx.fillText(lines[i], textX, top + i * textHeight);
       }
     } else {
       ctx.fillText(label, textX, middle);
@@ -598,9 +732,10 @@ class SankeyController extends chart_js.DatasetController {
   _drawNodes() {
     const ctx = this._ctx;
     const nodes = this._nodes || new Map();
-    const dataset = this.getDataset();  /* SankeyControllerDatasetOptions */
+
+    const dataset = this.getDataset(); /* SankeyControllerDatasetOptions */
     const size = validateSizeValue(dataset.size);
-    const {xScale, yScale} = this._cachedMeta;
+    const { xScale, yScale } = this._cachedMeta;
     const borderWidth = helpers.valueOrDefault(dataset.borderWidth, 1);
     const nodeWidth = helpers.valueOrDefault(dataset.nodeWidth, 10);
 
@@ -614,12 +749,30 @@ class SankeyController extends chart_js.DatasetController {
 
       const max = Math[size](node.in || node.out, node.out || node.in);
       const height = Math.abs(yScale.getPixelForValue(node.y + max) - y);
-      ctx.beginPath();
-      ctx.fillStyle = node.color;
-      if (borderWidth) {
-        ctx.roundRect(x, y, nodeWidth, height, 20);
+
+      const pattern = this.nodePatterns[node.key];
+      const nodeLabel = this.nodeLabels[node.key];
+      const nodeLabelPosition = this.labelPositions[node.key];
+
+      const nodeLabelWidth = nodeLabel ? ctx.measureText(nodeLabel).width : 0;
+
+      let nodeX = x;
+
+      if (nodeLabel && nodeLabelPosition === 'left' && node.from.length === 0) {
+        nodeX += nodeLabelWidth + nodeWidth / 4 + borderWidth;
       }
-      ctx.roundRect(x, y, nodeWidth, height, 20);
+
+      if (nodeLabel && nodeLabelPosition === 'right' && node.to.length === 0) {
+        nodeX -= nodeLabelWidth + nodeWidth / 8 + borderWidth;
+      }
+
+      ctx.beginPath();
+
+      ctx.fillStyle = pattern || node.color;
+      if (borderWidth) {
+        ctx.roundRect(nodeX, y, nodeWidth, height, 20);
+      }
+      ctx.roundRect(nodeX, y, nodeWidth, height, 20);
       ctx.fill();
       ctx.stroke();
     }
@@ -637,25 +790,28 @@ class SankeyController extends chart_js.DatasetController {
     const active = [];
     for (let i = 0, ilen = data.length; i < ilen; ++i) {
       const flow = data[i]; /* Flow at index i */
-      flow.from.color = flow.options.colorFrom;
-      flow.to.color = flow.options.colorTo;
+
+      flow.from.color =
+        this.nodeColors[flow.from.key] || flow.options.colorFrom;
+      flow.to.color = this.nodeColors[flow.to.key] || flow.options.colorTo;
       if (flow.active) {
         active.push(flow);
       }
     }
     // Make sure nodes connected to hovered flows are using hover colors.
     for (const flow of active) {
-      flow.from.color = flow.options.colorFrom;
-      flow.to.color = flow.options.colorTo;
+      flow.from.color =
+        this.nodeColors[flow.from.key] || flow.options.colorFrom;
+      flow.to.color = this.nodeColors[flow.to.key] || flow.options.colorTo;
     }
-
-    /* draw SankeyNodes on the canvas */
-    this._drawNodes();
 
     /* draw Flow elements on the canvas */
     for (let i = 0, ilen = data.length; i < ilen; ++i) {
       data[i].draw(ctx);
     }
+
+    /* draw SankeyNodes on the canvas */
+    this._drawNodes();
 
     /* draw labels (for SankeyNodes) on the canvas */
     this._drawLabels();
@@ -669,12 +825,18 @@ SankeyController.defaults = {
   animations: {
     numbers: {
       type: 'number',
-      properties: ['x', 'y', 'x2', 'y2', 'height']
+      properties: ['x', 'y', 'x2', 'y2', 'height'],
     },
     progress: {
       easing: 'linear',
-      duration: (ctx) => ctx.type === 'data' ? (ctx.parsed._custom.x - ctx.parsed.x) * 200 : undefined,
-      delay: (ctx) => ctx.type === 'data' ? ctx.parsed.x * 500 + ctx.dataIndex * 20 : undefined,
+      duration: (ctx) =>
+        ctx.type === 'data'
+          ? (ctx.parsed._custom.x - ctx.parsed.x) * 200
+          : undefined,
+      delay: (ctx) =>
+        ctx.type === 'data'
+          ? ctx.parsed.x * 500 + ctx.dataIndex * 20
+          : undefined,
     },
     colors: {
       type: 'color',
@@ -687,30 +849,30 @@ SankeyController.defaults = {
         colors: {
           type: 'color',
           properties: ['colorFrom', 'colorTo'],
-          to: 'transparent'
-        }
-      }
+          to: 'transparent',
+        },
+      },
     },
     show: {
       animations: {
         colors: {
           type: 'color',
           properties: ['colorFrom', 'colorTo'],
-          from: 'transparent'
-        }
-      }
-    }
-  }
+          from: 'transparent',
+        },
+      },
+    },
+  },
 };
 
 SankeyController.overrides = {
   interaction: {
     mode: 'nearest',
-    intersect: true
+    intersect: true,
   },
   datasets: {
     clip: false,
-    parsing: true
+    parsing: true,
   },
   plugins: {
     tooltip: {
@@ -721,7 +883,7 @@ SankeyController.overrides = {
         label(context) {
           const item = context.dataset.data[context.dataIndex];
           return item.from + ' -> ' + item.to + ': ' + item.flow;
-        }
+        },
       },
     },
     legend: {
@@ -749,7 +911,6 @@ SankeyController.overrides = {
     padding: {
       top: 3,
       left: 3,
-      right: 13,
       bottom: 3,
     },
   },
@@ -765,15 +926,16 @@ SankeyController.overrides = {
  * @param {number} y2
  * @return {ControlPoints}
  */
-const controlPoints = (x, y, x2, y2) => x < x2
-  ? {
-    cp1: {x: x + (x2 - x) / 3 * 2, y},
-    cp2: {x: x + (x2 - x) / 3, y: y2}
-  }
-  : {
-    cp1: {x: x - (x - x2) / 3, y: 0},
-    cp2: {x: x2 + (x - x2) / 3, y: 0}
-  };
+const controlPoints = (x, y, x2, y2) =>
+  x < x2
+    ? {
+        cp1: { x: x + ((x2 - x) / 3) * 2, y },
+        cp2: { x: x + (x2 - x) / 3, y: y2 },
+      }
+    : {
+        cp1: { x: x - (x - x2) / 3, y: 0 },
+        cp2: { x: x2 + (x - x2) / 3, y: 0 },
+      };
 
 /**
  *
@@ -782,23 +944,27 @@ const controlPoints = (x, y, x2, y2) => x < x2
  * @param {number} t
  * @return {ControlPoint}
  */
-const pointInLine = (p1, p2, t) => ({x: p1.x + t * (p2.x - p1.x), y: p1.y + t * (p2.y - p1.y)});
+const pointInLine = (p1, p2, t) => ({
+  x: p1.x + t * (p2.x - p1.x),
+  y: p1.y + t * (p2.y - p1.y),
+});
 
 /**
  * @param {CanvasRenderingContext2D} ctx
  * @param {Flow} flow
  */
-function setStyle(ctx, {x, x2, options}) {
+function setStyle(ctx, me) {
+  const { x, x2, options, from, to } = me;
   let fill;
 
   if (options.colorMode === 'from') {
-    fill = helpers.color(options.colorFrom).alpha(0.5).rgbString();
+    fill = helpers.color(from.color).alpha(0.2).rgbString();
   } else if (options.colorMode === 'to') {
-    fill = helpers.color(options.colorTo).alpha(0.5).rgbString();
+    fill = helpers.color(to.color).alpha(0.2).rgbString();
   } else {
     fill = ctx.createLinearGradient(x, 0, x2, 0);
-    fill.addColorStop(0, helpers.color(options.colorFrom).alpha(0.5).rgbString());
-    fill.addColorStop(1, helpers.color(options.colorTo).alpha(0.5).rgbString());
+    fill.addColorStop(0, helpers.color(from.color).alpha(0.2).rgbString());
+    fill.addColorStop(1, helpers.color(to.color).alpha(0.2).rgbString());
   }
 
   ctx.fillStyle = fill;
@@ -807,13 +973,11 @@ function setStyle(ctx, {x, x2, options}) {
 }
 
 class Flow extends chart_js.Element {
-
   /**
    * @param {FlowConfig} cfg
    */
   constructor(cfg) {
     super();
-
     this.options = undefined;
     this.x = undefined;
     this.y = undefined;
@@ -825,14 +989,19 @@ class Flow extends chart_js.Element {
       Object.assign(this, cfg);
     }
   }
-
   /**
    * @param {CanvasRenderingContext2D} ctx
    */
   draw(ctx) {
     const me = this;
-    const {x, x2, y, y2, height, progress} = me;
-    const {cp1, cp2} = controlPoints(x, y, x2, y2);
+
+    const { x, x2, y, y2, height, progress } = me;
+
+    const halfNodeWidth = me.$context.parsed._custom.nodeWidth / 2;
+    const startX = x - halfNodeWidth;
+    const endX = x2 + halfNodeWidth;
+
+    const { cp1, cp2 } = controlPoints(startX, y, endX, y2);
 
     if (progress === 0) {
       return;
@@ -840,18 +1009,30 @@ class Flow extends chart_js.Element {
     ctx.save();
     if (progress < 1) {
       ctx.beginPath();
-      ctx.rect(x, Math.min(y, y2), (x2 - x) * progress + 1, Math.abs(y2 - y) + height + 1);
+      ctx.rect(
+        startX,
+        Math.min(y, y2),
+        (endX - startX) * progress + 1,
+        Math.abs(y2 - y) + height + 1
+      );
       ctx.clip();
     }
 
     setStyle(ctx, me);
 
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, x2, y2);
-    ctx.lineTo(x2, y2 + height);
-    ctx.bezierCurveTo(cp2.x, cp2.y + height, cp1.x, cp1.y + height, x, y + height);
-    ctx.lineTo(x, y);
+    ctx.moveTo(startX, y);
+    ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, endX, y2);
+    ctx.lineTo(endX, y2 + height);
+    ctx.bezierCurveTo(
+      cp2.x,
+      cp2.y + height,
+      cp1.x,
+      cp1.y + height,
+      startX,
+      y + height
+    );
+    ctx.lineTo(startX, y);
     ctx.stroke();
     ctx.closePath();
 
@@ -867,14 +1048,17 @@ class Flow extends chart_js.Element {
    * @return {boolean}
    */
   inRange(mouseX, mouseY, useFinalPosition) {
-    const {x, y, x2, y2, height} = this.getProps(['x', 'y', 'x2', 'y2', 'height'], useFinalPosition);
+    const { x, y, x2, y2, height } = this.getProps(
+      ['x', 'y', 'x2', 'y2', 'height'],
+      useFinalPosition
+    );
     if (mouseX < x || mouseX > x2) {
       return false;
     }
-    const {cp1, cp2} = controlPoints(x, y, x2, y2);
+    const { cp1, cp2 } = controlPoints(x, y, x2, y2);
     const t = (mouseX - x) / (x2 - x);
-    const p1 = {x, y};
-    const p2 = {x: x2, y: y2};
+    const p1 = { x, y };
+    const p2 = { x: x2, y: y2 };
     const a = pointInLine(p1, cp1, t);
     const b = pointInLine(cp1, cp2, t);
     const c = pointInLine(cp2, p2, t);
@@ -890,7 +1074,7 @@ class Flow extends chart_js.Element {
    * @return {boolean}
    */
   inXRange(mouseX, useFinalPosition) {
-    const {x, x2} = this.getProps(['x', 'x2'], useFinalPosition);
+    const { x, x2 } = this.getProps(['x', 'x2'], useFinalPosition);
     return mouseX >= x && mouseX <= x2;
   }
 
@@ -900,7 +1084,10 @@ class Flow extends chart_js.Element {
    * @return {boolean}
    */
   inYRange(mouseY, useFinalPosition) {
-    const {y, y2, height} = this.getProps(['y', 'y2', 'height'], useFinalPosition);
+    const { y, y2, height } = this.getProps(
+      ['y', 'y2', 'height'],
+      useFinalPosition
+    );
     const minY = Math.min(y, y2);
     const maxY = Math.max(y, y2) + height;
     return mouseY >= minY && mouseY <= maxY;
@@ -911,10 +1098,13 @@ class Flow extends chart_js.Element {
    * @return {{x: number, y:number}}
    */
   getCenterPoint(useFinalPosition) {
-    const {x, y, x2, y2, height} = this.getProps(['x', 'y', 'x2', 'y2', 'height'], useFinalPosition);
+    const { x, y, x2, y2, height } = this.getProps(
+      ['x', 'y', 'x2', 'y2', 'height'],
+      useFinalPosition
+    );
     return {
       x: (x + x2) / 2,
-      y: (y + y2 + height) / 2
+      y: (y + y2 + height) / 2,
     };
   }
 
@@ -936,8 +1126,8 @@ Flow.defaults = {
   colorFrom: 'red',
   colorTo: 'green',
   colorMode: 'gradient',
-  hoverColorFrom: (ctx, options) => helpers.getHoverColor(options.colorFrom),
-  hoverColorTo: (ctx, options) => helpers.getHoverColor(options.colorTo)
+  // hoverColorFrom: (ctx, options) => getHoverColor(options.colorFrom),
+  // hoverColorTo: (ctx, options) => getHoverColor(options.colorTo),
 };
 
 chart_js.Chart.register(SankeyController, Flow);
