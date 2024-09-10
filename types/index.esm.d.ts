@@ -44,8 +44,13 @@ declare module 'chart.js' {
     padding?: number /* defaults to font.lineHeight / 2 */;
   }
 
+  type LabelSetting = {
+    label: string;
+    fontWieght?: 'normal' | 'bold';
+  };
+
   type NodeSetting = {
-    label?: string;
+    labels?: LabelSetting[];
     labelPosition?: 'left' | 'right' | 'top';
     color?: string;
     pattern?: CanvasPattern;

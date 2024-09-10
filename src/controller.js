@@ -214,8 +214,12 @@ export default class SankeyController extends DatasetController {
       }
 
       if (toLabel && toLabelPosition === 'right' && isRightEnd) {
-        movedX2 =
-          -this._ctx.measureText(toLabel).width - nodeWidth / 2 - borderWidth;
+        movedX2 = -(
+          this._ctx.measureText(toLabel).width +
+          nodeWidth / 2 +
+          borderWidth +
+          this.chart.options.layout.padding / 2
+        );
       }
 
       this.updateElement(
@@ -326,7 +330,8 @@ export default class SankeyController extends DatasetController {
           {
             if (node.to.length === 0) {
               ctx.textAlign = 'right';
-              textX += nodeWidth + borderWidth;
+              textX +=
+                nodeWidth + borderWidth - this.chart.options.layout.padding / 2;
             } else {
               ctx.textAlign = 'left';
               textX += nodeWidth + borderWidth + 4;
@@ -337,7 +342,7 @@ export default class SankeyController extends DatasetController {
           {
             ctx.textAlign = 'center';
             textX += nodeWidth / 2;
-            textY -= height / 2 + borderWidth + 8;
+            textY -= height / 2 + borderWidth + 10;
           }
           break;
         default: {
@@ -406,8 +411,6 @@ export default class SankeyController extends DatasetController {
 
       const height = Math.abs(yScale.getPixelForValue(node.y + max) - y);
 
-      console.log({ max, height, y });
-
       const pattern = this.nodePatterns[node.key];
       const nodeLabel = this.nodeLabels[node.key];
       const nodeLabelPosition = this.labelPositions[node.key];
@@ -421,7 +424,7 @@ export default class SankeyController extends DatasetController {
       }
 
       if (nodeLabel && nodeLabelPosition === 'right' && node.to.length === 0) {
-        nodeX -= nodeLabelWidth + nodeWidth / 8 + borderWidth;
+        nodeX -= nodeLabelWidth + nodeWidth / 8 + borderWidth + this.chart.options.layout.padding / 2;
       }
 
       ctx.beginPath();
@@ -441,7 +444,7 @@ export default class SankeyController extends DatasetController {
   /**
    * That's where the drawing process happens
    */
-  
+
   draw() {
     const ctx = this._ctx;
     const data = this.getMeta().data || []; /* Array<Flow> */
